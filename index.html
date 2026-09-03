@@ -440,11 +440,10 @@
       </div>
       <div class="settings-row" id="settings-password-block" style="display:none;">
         <label>PASSWORD SEZIONE PRIVATE (L5)</label>
-        <input type="password" id="settings-pw1" placeholder="Nuova password">
-        <input type="password" id="settings-pw2" placeholder="Conferma password">
-        <button id="settings-pw-save">SALVA PASSWORD</button>
+        <div id="settings-pw-fields"></div>
+        <button id="settings-pw-save">SALVA</button>
         <div class="settings-status" id="settings-pw-status"></div>
-        <div class="settings-note">Protegge la sezione Private anche se qualcuno usa fisicamente la tua card NFC. Lasciando vuoto e salvando, la password viene rimossa.</div>
+        <div class="settings-note" id="settings-pw-note">Protegge la sezione Private anche se qualcuno usa fisicamente la tua card NFC.</div>
       </div>
     </section>
 
@@ -475,7 +474,7 @@ import { firebaseConfig } from './firebase-config.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
   getFirestore, collection, addDoc, query, where, orderBy,
-  getDocs, getDoc, doc, setDoc, onSnapshot, serverTimestamp, limit
+  getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot, serverTimestamp, limit
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
@@ -485,7 +484,7 @@ const auth = getAuth(fbApp);
 
 window.__srpDb = db;
 window.__srp = {
-  collection, addDoc, query, where, orderBy, getDocs, getDoc, doc, setDoc, onSnapshot, serverTimestamp, limit
+  collection, addDoc, query, where, orderBy, getDocs, getDoc, doc, setDoc, deleteDoc, onSnapshot, serverTimestamp, limit
 };
 
 signInAnonymously(auth).catch(err=>{
@@ -524,6 +523,17 @@ let currentRepo = null;      // {id,name,desc,minLevel}
 let currentChatLevel = null;
 let unsubscribeChat = null;
 let privateUnlocked = false;
+
+/* ==================== PERMISSIONS ==================== */
+// Un utente può eliminare un elemento se:
+// - è stato creato da qualcuno del suo stesso livello, oppure
+// - lui è L4/L5 e il creatore ha un livello inferiore al suo
+function canDelete(creatorLevel){
+  if(creatorLevel == null) return false;
+  if(creatorLevel === CURRENT.level) return true;
+  if(CURRENT.level >= 4 && creatorLevel < CURRENT.level) return true;
+  return false;
+}
 
 /* ==================== SCREEN SWITCH ==================== */
 function showFullscreen(id){
@@ -612,7 +622,10 @@ function initApp(){
   document.getElementById('priv-submit').addEventListener('click', submitPrivateEntry);
   document.getElementById('private-file-input').addEventListener('change', handlePrivateFileUpload);
 
-  document.getElementById('settings-btn').addEventListener('click', ()=> switchView('settings'));
+  document.getElementById('settings-btn').addEventListener('click', ()=>{
+    switchView('settings');
+    if(CURRENT.level >= 5) loadSettingsPasswordForm();
+  });
   document.getElementById('settings-back-btn').addEventListener('click', ()=> switchView('home'));
   document.getElementById('settings-pw-save').addEventListener('click', savePrivatePassword);
 
@@ -659,6 +672,7 @@ async function createRepo(){
       name, desc, minLevel,
       createdBy: CURRENT.name+' '+CURRENT.surname[0]+'.',
       createdByUid: window.__srpUid || null,
+      creatorLevel: CURRENT.level,
       createdAt: serverTimestamp()
     });
     document.getElementById('new-repo-name').value='';
@@ -685,23 +699,49 @@ async function renderRepoList(){
   if(repos.length===0){ el.innerHTML = '<div class="empty-note">Nessuna repository ancora. Creane una tu.</div>'; return; }
   el.innerHTML = repos.map(r=>{
     const unlocked = CURRENT.level >= r.minLevel;
-    return `<div class="repo-row" data-rid="${r.id}" style="${unlocked?'':'opacity:.35;pointer-events:none;'}">
-      <div class="repo-left">
+    const delBtn = (unlocked && canDelete(r.creatorLevel))
+      ? `<button class="fi-btn" data-act="del-repo" data-rid="${r.id}" style="border-color:var(--red-dim); color:var(--red);">ELIMINA</button>`
+      : '';
+    return `<div class="repo-row" style="${unlocked?'':'opacity:.35;pointer-events:none;'}">
+      <div class="repo-left" data-rid="${r.id}" style="cursor:pointer;">
         <div class="repo-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7a1 1 0 011-1h5l2 2h9a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z"/></svg></div>
         <div style="min-width:0;">
           <div class="repo-name">${escapeHtml(r.name)}</div>
           <div class="repo-meta">${escapeHtml(r.desc||'')}</div>
         </div>
       </div>
-      <div class="repo-lvl">${LEVELS[r.minLevel].code}+</div>
+      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+        ${delBtn}
+        <div class="repo-lvl">${LEVELS[r.minLevel].code}+</div>
+      </div>
     </div>`;
   }).join('');
-  el.querySelectorAll('.repo-row').forEach(row=>{
+  el.querySelectorAll('.repo-left').forEach(row=>{
     row.addEventListener('click', ()=>{
       const r = repos.find(x=>x.id===row.dataset.rid);
       if(r) openRepo(r);
     });
   });
+  el.querySelectorAll('[data-act="del-repo"]').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      if(!confirm('Eliminare questa repository e tutti i suoi file?')) return;
+      await deleteRepo(btn.dataset.rid);
+      renderRepoList();
+      refreshStats();
+    });
+  });
+}
+
+async function deleteRepo(repoId){
+  const { deleteDoc, doc, collection, query, where, getDocs } = window.__srp;
+  try{
+    // elimina prima tutti i file contenuti nella repo
+    const q = query(collection(window.__srpDb, 'files'), where('repoId','==',repoId));
+    const snap = await getDocs(q);
+    await Promise.all(snap.docs.map(d=> deleteDoc(doc(window.__srpDb, 'files', d.id))));
+    await deleteDoc(doc(window.__srpDb, 'repos', repoId));
+  }catch(err){ console.error(err); alert('Eliminazione fallita.'); }
 }
 
 function showRepoList(){
@@ -738,7 +778,10 @@ async function countAllRepos(){
   try{ return (await getDocs(collection(window.__srpDb,'repos'))).size; }catch(e){ return 0; }
 }
 
-function renderFileRow(f){
+function renderFileRow(f, collectionName){
+  const delBtn = canDelete(f.creatorLevel)
+    ? `<button class="fi-btn" data-act="del" data-fid="${f.id}" data-col="${collectionName}" style="border-color:var(--red-dim); color:var(--red);">ELIMINA</button>`
+    : '';
   return `<div class="file-item">
     <div class="fi-left">
       <div class="fi-name">${escapeHtml(f.name)}</div>
@@ -747,19 +790,27 @@ function renderFileRow(f){
     <div class="fi-actions">
       <button class="fi-btn" data-act="open" data-fid="${f.id}">APRI</button>
       <button class="fi-btn" data-act="dl" data-fid="${f.id}">SCARICA</button>
+      ${delBtn}
     </div>
   </div>`;
 }
 
-function bindFileActions(container, files){
+function bindFileActions(container, files, onDeleted){
   container.querySelectorAll('.fi-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
+    btn.addEventListener('click', async ()=>{
       const f = files.find(x=>x.id===btn.dataset.fid);
-      if(!f || !f.dataUrl) return;
+      if(!f) return;
       if(btn.dataset.act==='open'){
         window.open(f.dataUrl, '_blank');
-      } else {
+      } else if(btn.dataset.act==='dl'){
         const a=document.createElement('a'); a.href=f.dataUrl; a.download=f.name; a.click();
+      } else if(btn.dataset.act==='del'){
+        if(!confirm('Eliminare questo file?')) return;
+        const { deleteDoc, doc } = window.__srp;
+        try{
+          await deleteDoc(doc(window.__srpDb, btn.dataset.col, f.id));
+          if(onDeleted) onDeleted();
+        }catch(err){ console.error(err); alert('Eliminazione fallita.'); }
       }
     });
   });
@@ -771,8 +822,8 @@ async function renderFileList(){
   listEl.innerHTML = '<div class="loading-note">Caricamento…</div>';
   const files = await fetchFilesForRepo(currentRepo.id);
   if(files.length===0){ listEl.innerHTML = '<div class="empty-note">Nessun file in questa repository. Sii il primo a caricarne uno.</div>'; return; }
-  listEl.innerHTML = files.map(renderFileRow).join('');
-  bindFileActions(listEl, files);
+  listEl.innerHTML = files.map(f=>renderFileRow(f,'files')).join('');
+  bindFileActions(listEl, files, ()=>{ renderFileList(); refreshStats(); });
 }
 
 function handleFileUpload(e){
@@ -789,6 +840,7 @@ function handleFileUpload(e){
         uploader: CURRENT.name+' '+CURRENT.surname[0]+'.',
         uploaderUid: window.__srpUid || null,
         level: CURRENT.level,
+        creatorLevel: CURRENT.level,
         size: (file.size/1024).toFixed(1)+' KB',
         date: new Date().toLocaleDateString('it-IT'),
         dataUrl: reader.result,
@@ -944,14 +996,31 @@ async function getPrivateEntries(){
 async function renderPrivateList(){
   const el = document.getElementById('private-list');
   el.innerHTML = '<div class="loading-note">Caricamento…</div>';
-  const entries = await getPrivateEntries();
-  if(entries===null){ el.innerHTML='<div class="empty-note">Impossibile caricare i dati.</div>'; return; }
+  const { collection, query, orderBy, getDocs } = window.__srp;
+  let entries;
+  try{
+    const q = query(collection(window.__srpDb, 'private_entries'), orderBy('createdAt','desc'));
+    entries = (await getDocs(q)).docs.map(d=>({ id:d.id, ...d.data() }));
+  }catch(e){ console.error(e); el.innerHTML='<div class="empty-note">Impossibile caricare i dati.</div>'; return; }
   if(entries.length===0){ el.innerHTML='<div class="empty-note">Nessuna voce registrata.</div>'; return; }
-  el.innerHTML = entries.map(e=>`
-    <div class="priv-entry">
+  el.innerHTML = entries.map(e=>{
+    const delBtn = canDelete(e.creatorLevel)
+      ? `<button class="fi-btn" data-act="del-entry" data-eid="${e.id}" style="border-color:var(--red-dim); color:var(--red); margin-top:8px;">ELIMINA</button>`
+      : '';
+    return `<div class="priv-entry">
       <div class="pe-title">${escapeHtml(e.title)}</div>
       <div class="pe-body">${escapeHtml(e.body)}</div>
-    </div>`).join('');
+      ${delBtn}
+    </div>`;
+  }).join('');
+  el.querySelectorAll('[data-act="del-entry"]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      if(!confirm('Eliminare questa voce?')) return;
+      const { deleteDoc, doc } = window.__srp;
+      try{ await deleteDoc(doc(window.__srpDb, 'private_entries', btn.dataset.eid)); renderPrivateList(); }
+      catch(err){ console.error(err); alert('Eliminazione fallita.'); }
+    });
+  });
 }
 
 async function submitPrivateEntry(){
@@ -964,6 +1033,7 @@ async function submitPrivateEntry(){
       title: t, body: b,
       author: CURRENT.name+' '+CURRENT.surname[0]+'.',
       authorUid: window.__srpUid || null,
+      creatorLevel: CURRENT.level,
       createdAt: serverTimestamp()
     });
   }catch(err){ console.error(err); alert('Registrazione fallita.'); return; }
@@ -987,8 +1057,8 @@ async function renderPrivateFileList(){
   const files = await getPrivateFiles();
   if(files===null){ el.innerHTML='<div class="empty-note">Impossibile caricare i file.</div>'; return; }
   if(files.length===0){ el.innerHTML='<div class="empty-note">Nessun file riservato caricato.</div>'; return; }
-  el.innerHTML = files.map(renderFileRow).join('');
-  bindFileActions(el, files);
+  el.innerHTML = files.map(f=>renderFileRow(f,'private_files')).join('');
+  bindFileActions(el, files, ()=> renderPrivateFileList());
 }
 
 function handlePrivateFileUpload(e){
@@ -1003,6 +1073,7 @@ function handlePrivateFileUpload(e){
         name: file.name,
         uploader: CURRENT.name+' '+CURRENT.surname[0]+'.',
         uploaderUid: window.__srpUid || null,
+        creatorLevel: CURRENT.level,
         size: (file.size/1024).toFixed(1)+' KB',
         date: new Date().toLocaleDateString('it-IT'),
         dataUrl: reader.result,
@@ -1015,21 +1086,58 @@ function handlePrivateFileUpload(e){
   reader.readAsDataURL(file);
 }
 
-/* ==================== SETTINGS ==================== */
+/* ==================== SETTINGS — password sezione privata ==================== */
+async function loadSettingsPasswordForm(){
+  const settings = await getOperatorSettings();
+  const hasPassword = !!(settings && settings.passwordHash);
+  const fieldsEl = document.getElementById('settings-pw-fields');
+  const noteEl = document.getElementById('settings-pw-note');
+  document.getElementById('settings-pw-status').textContent = '';
+
+  if(hasPassword){
+    fieldsEl.innerHTML = `
+      <input type="password" id="settings-pw-old" placeholder="Password attuale">
+      <input type="password" id="settings-pw1" placeholder="Nuova password (vuoto = rimuovi)">
+      <input type="password" id="settings-pw2" placeholder="Conferma nuova password">
+    `;
+    noteEl.textContent = 'Per cambiarla o rimuoverla devi prima confermare quella attuale. Lascia i campi nuova password vuoti per rimuoverla del tutto.';
+  } else {
+    fieldsEl.innerHTML = `
+      <input type="password" id="settings-pw1" placeholder="Nuova password">
+      <input type="password" id="settings-pw2" placeholder="Conferma password">
+    `;
+    noteEl.textContent = 'Nessuna password impostata: la sezione Private è aperta a chiunque abbia la tua card. Impostane una per proteggerla.';
+  }
+}
+
 async function savePrivatePassword(){
+  const statusEl = document.getElementById('settings-pw-status');
+  statusEl.style.color = 'var(--red)';
+  const settings = await getOperatorSettings();
+  const hasPassword = !!(settings && settings.passwordHash);
+
+  if(hasPassword){
+    const oldInput = document.getElementById('settings-pw-old');
+    const oldVal = oldInput ? oldInput.value : '';
+    const oldHash = await sha256Hex(oldVal);
+    if(oldHash !== settings.passwordHash){
+      statusEl.textContent = 'Password attuale errata.';
+      return;
+    }
+  }
+
   const pw1 = document.getElementById('settings-pw1').value;
   const pw2 = document.getElementById('settings-pw2').value;
-  const statusEl = document.getElementById('settings-pw-status');
-  if(pw1 !== pw2){ statusEl.textContent = 'Le password non coincidono.'; return; }
+  if(pw1 !== pw2){ statusEl.textContent = 'Le nuove password non coincidono.'; return; }
+
   const { doc, setDoc } = window.__srp;
   try{
-    const hash = pw1 ? await sha256Hex(pw1) : null;
-    await setDoc(doc(window.__srpDb, 'operator_settings', CURRENT.id), { passwordHash: hash });
+    const newHash = pw1 ? await sha256Hex(pw1) : null;
+    await setDoc(doc(window.__srpDb, 'operator_settings', CURRENT.id), { passwordHash: newHash });
     statusEl.style.color = 'var(--text-dim)';
-    statusEl.textContent = pw1 ? 'Password salvata.' : 'Password rimossa.';
+    statusEl.textContent = pw1 ? 'Password aggiornata.' : 'Password rimossa.';
     privateUnlocked = false;
-    document.getElementById('settings-pw1').value='';
-    document.getElementById('settings-pw2').value='';
+    loadSettingsPasswordForm();
   }catch(err){ console.error(err); statusEl.style.color='var(--red)'; statusEl.textContent='Errore nel salvataggio.'; }
 }
 
