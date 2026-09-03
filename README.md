@@ -92,12 +92,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    match /repos/{repoId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.name is string
+        && request.resource.data.name.size() < 100;
+      allow update, delete: if false;
+    }
+
     match /files/{fileId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.name is string
         && request.resource.data.name.size() < 200
-        && request.resource.data.repo is string;
+        && request.resource.data.repoId is string;
       allow update, delete: if false;
     }
 
@@ -117,17 +125,34 @@ service cloud.firestore {
         && request.resource.data.body.size() < 1000;
       allow update, delete: if false;
     }
+
+    match /private_files/{fileId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.name is string
+        && request.resource.data.name.size() < 200;
+      allow update, delete: if false;
+    }
+
+    match /operator_settings/{cardId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
   }
 }
 ```
 
 Cosa fanno queste regole:
 - Solo utenti autenticati (anche in forma anonima) possono leggere/scrivere.
-- I messaggi e le voci private, una volta creati, **non possono essere
-  modificati né cancellati** da nessuno tramite l'app (né dal client, né
-  da qualcuno che ispeziona il traffico di rete).
-- Vengono validati tipo e lunghezza dei campi principali, per evitare dati
-  malformati o payload eccessivi.
+- I messaggi, le voci private e i file, una volta creati, **non possono
+  essere modificati né cancellati** da nessuno tramite l'app.
+- Vengono validati tipo e lunghezza dei campi principali.
+- `operator_settings` (la password della sezione Private) è scrivibile da
+  chiunque sia autenticato — chi conosce l'ID esatto di un'altra card
+  potrebbe in teoria sovrascriverne la password. Con ID lunghi e casuali
+  (fatto sopra) il rischio pratico è basso, ma è una scelta di compromesso:
+  una vera protezione richiederebbe Cloud Functions per validare chi può
+  scrivere su quale documento.
 
 **Limite onesto**: queste regole verificano *l'autenticazione*, non *quale
 livello* dichiara di avere il client — perché il livello arriva dall'URL

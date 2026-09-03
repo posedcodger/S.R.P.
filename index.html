@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>S.R.P. — Security Research Project</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,55 +19,72 @@
     --text-faint:#525252;
     --red:#e0313a;
     --red-dim:#5c1418;
-    --red-glow:rgba(224,49,58,.18);
     --font-brand:'Orbitron', sans-serif;
     --font-body:'Inter', -apple-system, 'Aaux Next', 'Helvetica Neue', sans-serif;
   }
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
-  html,body{ height:100%; background:var(--bg); color:var(--text); font-family:var(--font-body); }
+  html,body{ background:var(--bg); color:var(--text); font-family:var(--font-body); }
   body{
-    padding-bottom:64px;
     background-image:
       linear-gradient(rgba(255,255,255,.012) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255,255,255,.012) 1px, transparent 1px);
     background-size:38px 38px;
-    max-width:560px; margin:0 auto; position:relative;
-    min-height:100vh;
   }
   ::selection{ background:var(--red-dim); color:#fff; }
   a{ color:inherit; }
   button{ font-family:inherit; }
+  input,textarea{ font-family:inherit; }
   ::-webkit-scrollbar{ width:4px; height:4px; }
   ::-webkit-scrollbar-thumb{ background:var(--border); }
 
-  /* ============ LOGO PLACEHOLDER ============
-     Sostituisci il src di ogni <img class="srp-logo"> con il tuo logo originale.
-     Segnaposto attuale: logo-placeholder.svg (esagono + linee, stile badge). */
+  /* Ogni "schermo" pieno (loading, nocard, app-shell) occupa tutta l'altezza
+     visibile del telefono in modo affidabile anche con la barra indirizzi mobile. */
+  .fullscreen{
+    height:100vh; height:100dvh;
+    max-width:560px; margin:0 auto;
+    display:none; flex-direction:column;
+    overflow:hidden;
+  }
+  .fullscreen.active{ display:flex; }
+
+  img.srp-logo{ width:30px; height:30px; object-fit:contain; }
+
+  /* ===== LOADING ===== */
+  #view-loading{ align-items:center; justify-content:center; gap:18px; }
+  .spinner{
+    width:34px; height:34px; border:2px solid var(--border);
+    border-top-color:var(--red); border-radius:50%;
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-label{ font-size:10.5px; letter-spacing:2.5px; color:var(--text-dim); }
 
   /* ===== TOPBAR ===== */
   header.topbar{
     display:flex; align-items:center; justify-content:space-between;
     padding:14px 18px; border-bottom:1px solid var(--border-soft);
-    position:sticky; top:0; background:rgba(0,0,0,0.94); backdrop-filter:blur(8px);
-    z-index:50;
+    background:rgba(0,0,0,0.94); flex-shrink:0;
   }
   .brand{ display:flex; align-items:center; gap:10px; }
-  img.srp-logo{ width:30px; height:30px; object-fit:contain; }
   .brand-text .name{ font-family:var(--font-brand); font-size:13px; letter-spacing:3px; font-weight:700; color:#fff; }
   .brand-text .sub{ font-size:8px; letter-spacing:1.6px; color:var(--text-dim); margin-top:1px; }
+  .topbar-right{ display:flex; align-items:center; gap:8px; }
   .id-chip{
     font-size:9px; letter-spacing:1.5px; color:var(--red);
     border:1px solid var(--red-dim); padding:4px 9px;
     display:flex; align-items:center; gap:5px;
   }
   .id-dot{ width:5px; height:5px; background:var(--red); box-shadow:0 0 5px var(--red); flex-shrink:0; }
+  .icon-btn{
+    background:none; border:1px solid var(--border); color:var(--text-dim);
+    width:28px; height:28px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; flex-shrink:0;
+  }
+  .icon-btn:active{ border-color:var(--red-dim); color:var(--red); }
+  .icon-btn svg{ width:14px; height:14px; }
 
   /* ===== NO-CARD SCREEN ===== */
-  #view-nocard{
-    min-height:calc(100vh - 60px);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    padding:40px 26px; text-align:center;
-  }
+  #view-nocard{ align-items:center; justify-content:center; padding:40px 26px; text-align:center; }
   #view-nocard img.srp-logo{ width:64px; height:64px; margin-bottom:22px; opacity:.9; }
   .nc-title{ font-family:var(--font-brand); font-size:15px; letter-spacing:2px; color:#fff; margin-bottom:10px; }
   .nc-body{ font-size:12.5px; color:var(--text-dim); line-height:1.8; max-width:340px; margin-bottom:26px; }
@@ -78,13 +95,17 @@
   }
   .nc-link b{ color:#fff; font-weight:600; }
 
-  /* ===== VIEWS ===== */
-  .view{ display:none; }
-  .view.active{ display:block; }
+  /* ===== APP SHELL LAYOUT ===== */
+  #app-shell{ /* fullscreen flex column: topbar / content / bottomnav */ }
+  #content{ flex:1; min-height:0; overflow-y:auto; }
+  .view-inner{ display:none; }
+  .view-inner.active{ display:flex; flex-direction:column; height:100%; }
+  /* views that don't need full-height flex (they just scroll normally) get block */
+  .view-inner.active.scrollable{ display:block; height:auto; min-height:100%; }
 
   /* ===== PROFILE HEADER (Home) ===== */
   .profile-block{
-    padding:22px 18px 18px; border-bottom:1px solid var(--border-soft); position:relative;
+    padding:22px 18px 18px; border-bottom:1px solid var(--border-soft);
     background:linear-gradient(180deg, rgba(224,49,58,.05), transparent 70%);
   }
   .profile-row{ display:flex; align-items:center; gap:14px; margin-bottom:16px; }
@@ -94,7 +115,7 @@
     font-family:var(--font-brand); font-size:15px; flex-shrink:0;
   }
   .profile-name{ font-size:16px; font-weight:600; color:#fff; letter-spacing:.3px; }
-  .profile-id{ font-size:10.5px; color:var(--text-dim); letter-spacing:1px; margin-top:3px; }
+  .profile-id{ font-size:9.5px; color:var(--text-dim); letter-spacing:.5px; margin-top:3px; word-break:break-all; }
   .level-pill{
     display:inline-flex; align-items:center; gap:6px; margin-top:8px;
     border:1px solid var(--red-dim); padding:4px 10px; font-size:10px; letter-spacing:2px; color:var(--red);
@@ -125,10 +146,9 @@
 
   /* ===== NAV BOTTOM ===== */
   nav.bottomnav{
-    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
-    width:100%; max-width:560px; display:flex;
-    background:rgba(0,0,0,.97); border-top:1px solid var(--border-soft);
-    backdrop-filter:blur(10px); z-index:60;
+    display:flex; border-top:1px solid var(--border-soft);
+    background:rgba(0,0,0,.97); flex-shrink:0;
+    padding-bottom:env(safe-area-inset-bottom, 0);
   }
   .nav-btn{
     flex:1; background:none; border:none; color:var(--text-faint);
@@ -139,17 +159,38 @@
   .nav-btn svg{ width:19px; height:19px; }
   .nav-btn.disabled{ opacity:.25; pointer-events:none; }
 
-  /* ===== FILES VIEW ===== */
+  /* ===== FILES / REPOS ===== */
+  .new-repo-bar{ padding:14px 18px; border-bottom:1px solid var(--border-soft); }
+  .new-repo-toggle{
+    width:100%; background:var(--panel2); border:1px dashed var(--border); color:var(--text-dim);
+    padding:10px; font-size:11px; letter-spacing:1px; cursor:pointer;
+  }
+  .new-repo-toggle:active{ border-color:var(--red-dim); color:var(--red); }
+  .new-repo-form{ display:none; flex-direction:column; gap:8px; margin-top:10px; }
+  .new-repo-form.open{ display:flex; }
+  .new-repo-form input, .new-repo-form select, .new-repo-form textarea{
+    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    padding:9px 11px; font-size:12px;
+  }
+  .new-repo-form textarea{ min-height:56px; resize:none; }
+  .new-repo-form button{
+    background:var(--red); border:none; color:#fff; padding:10px; font-size:11px; letter-spacing:1px; cursor:pointer;
+  }
   .repo-row{
     display:flex; align-items:center; justify-content:space-between;
     padding:13px 18px; border-bottom:1px solid var(--border-soft); cursor:pointer;
   }
   .repo-row:active{ background:var(--panel2); }
-  .repo-left{ display:flex; align-items:center; gap:12px; }
+  .repo-left{ display:flex; align-items:center; gap:12px; min-width:0; }
   .repo-icon{ width:30px; height:30px; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; color:var(--text-dim); flex-shrink:0; }
   .repo-name{ font-size:12.5px; color:#fff; }
   .repo-meta{ font-size:9.5px; color:var(--text-faint); margin-top:2px; letter-spacing:.5px; }
   .repo-lvl{ font-size:9px; color:var(--red-dim); border:1px solid var(--red-dim); padding:2px 7px; letter-spacing:1px; flex-shrink:0; }
+
+  .repo-detail-header{ display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border-soft); }
+  .back-btn{ background:none; border:1px solid var(--border); color:var(--text-dim); width:28px; height:28px; flex-shrink:0; cursor:pointer; }
+  .repo-detail-title{ font-size:13px; color:#fff; }
+  .repo-detail-desc{ font-size:10px; color:var(--text-faint); margin-top:2px; }
 
   .upload-bar{ display:flex; gap:8px; padding:14px 18px; border-bottom:1px solid var(--border-soft); }
   .upload-bar input[type=file]{ display:none; }
@@ -158,24 +199,24 @@
     padding:10px; font-size:11px; letter-spacing:1px; text-align:center; cursor:pointer;
   }
   .upload-btn:active{ border-color:var(--red-dim); }
-  .file-list{ padding:0 0 10px; }
-  .file-item{ display:flex; justify-content:space-between; align-items:center; padding:11px 18px; border-bottom:1px solid var(--border-soft); font-size:11.5px; }
-  .file-item .fi-left{ display:flex; align-items:center; gap:10px; min-width:0; }
-  .file-item .fi-name{ color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px; }
+  .file-item{ display:flex; justify-content:space-between; align-items:center; padding:11px 18px; border-bottom:1px solid var(--border-soft); font-size:11.5px; gap:10px; }
+  .file-item .fi-name{ color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .file-item .fi-meta{ font-size:9.5px; color:var(--text-faint); margin-top:2px; }
-  .fi-dl{ font-size:9px; border:1px solid var(--border); padding:4px 9px; color:var(--text-dim); cursor:pointer; flex-shrink:0; }
-  .fi-dl:active{ border-color:var(--red-dim); color:var(--red); }
+  .fi-left{ min-width:0; flex:1; }
+  .fi-actions{ display:flex; gap:6px; flex-shrink:0; }
+  .fi-btn{ font-size:9px; border:1px solid var(--border); padding:4px 9px; color:var(--text-dim); cursor:pointer; background:none; }
+  .fi-btn:active{ border-color:var(--red-dim); color:var(--red); }
   .empty-note{ padding:26px 18px; text-align:center; font-size:11px; color:var(--text-faint); letter-spacing:.5px; }
+  .loading-note{ text-align:center; padding:30px; font-size:10.5px; color:var(--text-faint); letter-spacing:1px; }
 
   /* ===== CHAT VIEW ===== */
-  .chat-tabs{ display:flex; overflow-x:auto; border-bottom:1px solid var(--border-soft); }
+  .chat-tabs{ display:flex; overflow-x:auto; border-bottom:1px solid var(--border-soft); flex-shrink:0; }
   .chat-tab{
     flex-shrink:0; padding:12px 16px; font-size:10.5px; letter-spacing:1.5px; color:var(--text-faint);
     border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap;
   }
   .chat-tab.active{ color:var(--red); border-color:var(--red); }
-  .chat-window{ display:flex; flex-direction:column; height:calc(100vh - 60px - 64px - 46px); }
-  .chat-messages{ flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+  .chat-messages{ flex:1; min-height:0; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
   .msg{ max-width:82%; }
   .msg.own{ align-self:flex-end; }
   .msg-meta{ font-size:9px; color:var(--text-faint); letter-spacing:.5px; margin-bottom:3px; display:flex; gap:6px; }
@@ -185,14 +226,15 @@
     font-size:12px; line-height:1.5; color:var(--text); word-wrap:break-word;
   }
   .msg.own .msg-bubble{ border-color:var(--red-dim); background:rgba(224,49,58,.06); }
-  .chat-input-row{ display:flex; gap:8px; padding:10px 14px; border-top:1px solid var(--border-soft); }
+  .chat-input-row{ display:flex; gap:8px; padding:10px 14px; border-top:1px solid var(--border-soft); flex-shrink:0; }
   .chat-input-row input{
     flex:1; background:var(--panel2); border:1px solid var(--border); color:var(--text);
-    padding:10px 12px; font-size:12.5px; font-family:inherit;
+    padding:10px 12px; font-size:12.5px;
   }
   .chat-input-row input:focus{ outline:none; border-color:var(--red-dim); }
   .chat-send{ background:var(--red); border:none; color:#fff; padding:0 16px; font-size:11px; letter-spacing:1px; cursor:pointer; }
-  .chat-readonly-note{ text-align:center; font-size:9.5px; color:var(--text-faint); padding:8px; letter-spacing:.5px; }
+  .chat-send:disabled{ opacity:.5; }
+  .chat-readonly-note{ text-align:center; font-size:9.5px; color:var(--text-faint); padding:8px; letter-spacing:.5px; flex-shrink:0; }
 
   /* ===== PRIVATE VIEW ===== */
   .private-warn{
@@ -201,32 +243,64 @@
   }
   .priv-entry{ padding:13px 18px; border-bottom:1px solid var(--border-soft); }
   .priv-entry .pe-title{ font-size:11.5px; color:#fff; margin-bottom:4px; }
-  .priv-entry .pe-body{ font-size:11px; color:var(--text-dim); line-height:1.7; }
+  .priv-entry .pe-body{ font-size:11px; color:var(--text-dim); line-height:1.7; white-space:pre-wrap; }
   .priv-add{ padding:14px 18px; display:flex; gap:8px; flex-direction:column; }
   .priv-add input, .priv-add textarea{
     background:var(--panel2); border:1px solid var(--border); color:var(--text);
-    padding:9px 11px; font-size:12px; font-family:inherit; resize:none;
+    padding:9px 11px; font-size:12px; resize:none;
   }
   .priv-add textarea{ min-height:70px; }
   .priv-add button{
-    background:var(--red); border:none; color:#fff; padding:10px; font-size:11px; letter-spacing:1px; cursor:pointer;
+    background:var(--red); border:none; color:#fff; padding:11px; font-size:11px; letter-spacing:1px; cursor:pointer;
   }
 
-  .loading-note{ text-align:center; padding:30px; font-size:10.5px; color:var(--text-faint); letter-spacing:1px; }
+  /* ===== LOCK SCREEN (private password) ===== */
+  #view-private-lock{ align-items:center; justify-content:center; padding:40px 26px; text-align:center; }
+  .lock-icon{ width:40px; height:40px; margin-bottom:18px; color:var(--red); }
+  .lock-title{ font-family:var(--font-brand); font-size:13px; letter-spacing:2px; color:#fff; margin-bottom:20px; }
+  .lock-form{ display:flex; flex-direction:column; gap:10px; width:100%; max-width:280px; }
+  .lock-form input{
+    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    padding:11px 13px; font-size:13px; text-align:center; letter-spacing:2px;
+  }
+  .lock-form button{
+    background:var(--red); border:none; color:#fff; padding:11px; font-size:11px; letter-spacing:1px; cursor:pointer;
+  }
+  .lock-error{ font-size:10px; color:var(--red); letter-spacing:.5px; min-height:14px; }
+
+  /* ===== SETTINGS SHEET ===== */
+  #view-settings{ align-items:stretch; justify-content:flex-start; }
+  .settings-row{ padding:16px 18px; border-bottom:1px solid var(--border-soft); }
+  .settings-row label{ font-size:10px; letter-spacing:1.5px; color:var(--text-dim); display:block; margin-bottom:8px; }
+  .settings-row input{
+    width:100%; background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    padding:10px 12px; font-size:12.5px; margin-bottom:8px;
+  }
+  .settings-row button{
+    background:var(--red); border:none; color:#fff; padding:10px 16px; font-size:11px; letter-spacing:1px; cursor:pointer;
+  }
+  .settings-note{ font-size:10px; color:var(--text-faint); line-height:1.7; margin-top:6px; }
+  .settings-status{ font-size:10px; color:var(--red); letter-spacing:.5px; min-height:14px; margin-top:6px; }
 </style>
 </head>
 <body>
 
+<!-- ============ LOADING ============ -->
+<div id="view-loading" class="fullscreen active">
+  <div class="spinner"></div>
+  <div class="loading-label">CONNESSIONE AL SISTEMA…</div>
+</div>
+
 <!-- ============ NO CARD / INVALID LINK ============ -->
-<section id="view-nocard" class="view active">
+<div id="view-nocard" class="fullscreen">
   <img class="srp-logo" src="logo-placeholder.svg" alt="S.R.P. logo" onerror="this.style.opacity=0.15">
   <div class="nc-title">CREDENZIALE NON RILEVATA</div>
   <div class="nc-body">Questo portale si apre esclusivamente tramite lettura NFC della credenziale S.R.P. Nessun ID valido è stato trasmesso in questa sessione.</div>
   <div class="nc-links" id="nc-demo-links"></div>
-</section>
+</div>
 
 <!-- ============ APP SHELL ============ -->
-<div id="app-shell" style="display:none;">
+<div id="app-shell" class="fullscreen">
   <header class="topbar">
     <div class="brand">
       <img class="srp-logo" src="logo-placeholder.svg" alt="S.R.P." onerror="this.style.opacity=0.2">
@@ -235,74 +309,146 @@
         <div class="sub">SECURITY RESEARCH PROJECT</div>
       </div>
     </div>
-    <div class="id-chip"><span class="id-dot"></span><span id="topbar-id">—</span></div>
+    <div class="topbar-right">
+      <div class="id-chip"><span class="id-dot"></span><span id="topbar-id">—</span></div>
+      <button class="icon-btn" id="settings-btn" title="Impostazioni">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+    </div>
   </header>
 
-  <!-- HOME -->
-  <section id="view-home" class="view">
-    <div class="profile-block">
-      <div class="profile-row">
-        <div class="profile-photo" id="home-initials">--</div>
-        <div>
-          <div class="profile-name" id="home-name">—</div>
-          <div class="profile-id" id="home-id">—</div>
-          <div class="level-pill" id="home-level">L0 — UNKNOWN</div>
+  <div id="content">
+
+    <!-- HOME -->
+    <section id="view-home" class="view-inner scrollable">
+      <div class="profile-block">
+        <div class="profile-row">
+          <div class="profile-photo" id="home-initials">--</div>
+          <div>
+            <div class="profile-name" id="home-name">—</div>
+            <div class="profile-id" id="home-id">—</div>
+            <div class="level-pill" id="home-level">L0 — UNKNOWN</div>
+          </div>
+        </div>
+        <div class="clearance-line">
+          <span>CLEARANCE <span id="home-clearance">—</span></span>
+          <span id="home-time">—</span>
         </div>
       </div>
-      <div class="clearance-line">
-        <span>CLEARANCE <span id="home-clearance">—</span></span>
-        <span id="home-time">—</span>
+
+      <div class="sec-label">STATO SISTEMA</div>
+      <div class="grid2">
+        <div class="stat"><div class="n" id="stat-files">0</div><div class="l">FILE CONDIVISI</div></div>
+        <div class="stat"><div class="n" id="stat-repos">0</div><div class="l">REPOSITORY</div></div>
       </div>
-    </div>
 
-    <div class="sec-label">STATO SISTEMA</div>
-    <div class="grid2">
-      <div class="stat"><div class="n" id="stat-files">0</div><div class="l">FILE CONDIVISI</div></div>
-      <div class="stat"><div class="n" id="stat-online">1</div><div class="l">SESSIONI ATTIVE</div></div>
-    </div>
+      <div class="sec-label">MATRICE ACCESSI</div>
+      <div id="access-matrix"></div>
+    </section>
 
-    <div class="sec-label">MATRICE ACCESSI</div>
-    <div id="access-matrix"></div>
-  </section>
+    <!-- FILES -->
+    <section id="view-files" class="view-inner scrollable">
+      <div id="files-repo-list-wrap">
+        <div class="new-repo-bar">
+          <button class="new-repo-toggle" id="new-repo-toggle">+ NUOVA REPOSITORY</button>
+          <div class="new-repo-form" id="new-repo-form">
+            <input type="text" id="new-repo-name" placeholder="Nome repository" maxlength="60">
+            <textarea id="new-repo-desc" placeholder="Descrizione" maxlength="200"></textarea>
+            <select id="new-repo-level">
+              <option value="1">Livello minimo: L1 — VISITOR</option>
+              <option value="2">Livello minimo: L2 — STAFF</option>
+              <option value="3">Livello minimo: L3 — RESEARCH</option>
+              <option value="4">Livello minimo: L4 — ADMIN</option>
+              <option value="5">Livello minimo: L5 — RESTRICTED</option>
+            </select>
+            <button id="new-repo-submit">CREA REPOSITORY</button>
+          </div>
+        </div>
+        <div class="sec-label" style="padding-top:10px;">REPOSITORY DISPONIBILI</div>
+        <div id="repo-list"></div>
+      </div>
 
-  <!-- FILES -->
-  <section id="view-files" class="view">
-    <div class="sec-label" style="padding-top:14px;">REPOSITORY</div>
-    <div id="repo-list"></div>
+      <div id="files-repo-detail-wrap" style="display:none;">
+        <div class="repo-detail-header">
+          <button class="back-btn" id="repo-back-btn">←</button>
+          <div>
+            <div class="repo-detail-title" id="repo-detail-title">—</div>
+            <div class="repo-detail-desc" id="repo-detail-desc">—</div>
+          </div>
+        </div>
+        <div class="upload-bar">
+          <label class="upload-btn" for="file-input">+ CARICA FILE</label>
+          <input type="file" id="file-input">
+        </div>
+        <div id="file-list"></div>
+      </div>
+    </section>
 
-    <div class="sec-label" id="files-inrepo-label" style="display:none;"></div>
-    <div class="upload-bar" id="upload-bar" style="display:none;">
-      <label class="upload-btn" for="file-input">+ CARICA FILE</label>
-      <input type="file" id="file-input">
-    </div>
-    <div class="file-list" id="file-list"></div>
-  </section>
-
-  <!-- CHAT -->
-  <section id="view-chat" class="view">
-    <div class="chat-tabs" id="chat-tabs"></div>
-    <div class="chat-window">
+    <!-- CHAT -->
+    <section id="view-chat" class="view-inner">
+      <div class="chat-tabs" id="chat-tabs"></div>
       <div class="chat-messages" id="chat-messages"></div>
       <div id="chat-readonly" class="chat-readonly-note" style="display:none;">SOLA LETTURA — livello superiore al tuo</div>
       <div class="chat-input-row" id="chat-input-row">
         <input type="text" id="chat-input" placeholder="Scrivi un messaggio…" maxlength="500">
         <button class="chat-send" id="chat-send">INVIA</button>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- PRIVATE -->
-  <section id="view-private" class="view">
-    <div class="private-warn">ACCESSO RISERVATO L5 · RESTRICTED<br>Ogni consultazione viene registrata nel log di sistema.</div>
-    <div class="sec-label" style="padding-top:0;">DATI SENSIBILI</div>
-    <div id="private-list"></div>
-    <div class="sec-label">AGGIUNGI VOCE</div>
-    <div class="priv-add">
-      <input type="text" id="priv-title" placeholder="Titolo voce" maxlength="80">
-      <textarea id="priv-body" placeholder="Contenuto…" maxlength="1000"></textarea>
-      <button id="priv-submit">REGISTRA VOCE</button>
-    </div>
-  </section>
+    <!-- PRIVATE LOCK -->
+    <section id="view-private-lock" class="view-inner">
+      <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+      <div class="lock-title">SEZIONE RISERVATA — INSERISCI PASSWORD</div>
+      <div class="lock-form">
+        <input type="password" id="lock-input" placeholder="Password" maxlength="60">
+        <button id="lock-submit">SBLOCCA</button>
+        <div class="lock-error" id="lock-error"></div>
+      </div>
+    </section>
+
+    <!-- PRIVATE -->
+    <section id="view-private" class="view-inner scrollable">
+      <div class="private-warn">ACCESSO RISERVATO L5 · RESTRICTED<br>Ogni consultazione viene registrata nel log di sistema.</div>
+
+      <div class="sec-label" style="padding-top:0;">FILE RISERVATI</div>
+      <div class="upload-bar">
+        <label class="upload-btn" for="private-file-input">+ CARICA FILE RISERVATO</label>
+        <input type="file" id="private-file-input">
+      </div>
+      <div id="private-file-list"></div>
+
+      <div class="sec-label">DATI SENSIBILI</div>
+      <div id="private-list"></div>
+      <div class="sec-label">AGGIUNGI VOCE</div>
+      <div class="priv-add">
+        <input type="text" id="priv-title" placeholder="Titolo voce" maxlength="80">
+        <textarea id="priv-body" placeholder="Contenuto…" maxlength="1000"></textarea>
+        <button id="priv-submit">REGISTRA VOCE</button>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view-inner scrollable">
+      <div class="repo-detail-header">
+        <button class="back-btn" id="settings-back-btn">←</button>
+        <div class="repo-detail-title">IMPOSTAZIONI</div>
+      </div>
+      <div class="settings-row">
+        <label>OPERATORE</label>
+        <div style="font-size:12.5px; color:#fff;" id="settings-name">—</div>
+        <div class="settings-note" id="settings-level">—</div>
+      </div>
+      <div class="settings-row" id="settings-password-block" style="display:none;">
+        <label>PASSWORD SEZIONE PRIVATE (L5)</label>
+        <input type="password" id="settings-pw1" placeholder="Nuova password">
+        <input type="password" id="settings-pw2" placeholder="Conferma password">
+        <button id="settings-pw-save">SALVA PASSWORD</button>
+        <div class="settings-status" id="settings-pw-status"></div>
+        <div class="settings-note">Protegge la sezione Private anche se qualcuno usa fisicamente la tua card NFC. Lasciando vuoto e salvando, la password viene rimossa.</div>
+      </div>
+    </section>
+
+  </div>
 
   <nav class="bottomnav">
     <button class="nav-btn" data-view="home">
@@ -329,7 +475,7 @@ import { firebaseConfig } from './firebase-config.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
   getFirestore, collection, addDoc, query, where, orderBy,
-  getDocs, onSnapshot, serverTimestamp, limit
+  getDocs, getDoc, doc, setDoc, onSnapshot, serverTimestamp, limit
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
@@ -339,10 +485,13 @@ const auth = getAuth(fbApp);
 
 window.__srpDb = db;
 window.__srp = {
-  collection, addDoc, query, where, orderBy, getDocs, onSnapshot, serverTimestamp, limit
+  collection, addDoc, query, where, orderBy, getDocs, getDoc, doc, setDoc, onSnapshot, serverTimestamp, limit
 };
 
-signInAnonymously(auth).catch(err=>console.error('Anonymous auth failed', err));
+signInAnonymously(auth).catch(err=>{
+  console.error('Anonymous auth failed', err);
+  document.dispatchEvent(new CustomEvent('srp-firebase-error', { detail: err }));
+});
 onAuthStateChanged(auth, user=>{
   if(user){
     window.__srpUid = user.uid;
@@ -370,18 +519,19 @@ const OPERATORS = {
   'SRP-EHR0C7OXFXM3IJ98X429E6AR':{ name:'RICCARDO', surname:'DORIGO', level:5 },
 };
 
-const REPOS = [
-  { id:'net-infra',   name:'net-infrastructure',  level:2, desc:'Documentazione rete interna' },
-  { id:'vuln-reports', name:'vuln-reports',        level:3, desc:'Report vulnerabilità e pentest' },
-  { id:'ops-classified', name:'ops-classified',    level:5, desc:'Operazioni classificate' },
-  { id:'public-docs', name:'public-docs',          level:1, desc:'Documenti visitatori' },
-];
-
-let CURRENT = null; // {id, name, surname, level}
-let currentRepo = null;
+let CURRENT = null;
+let currentRepo = null;      // {id,name,desc,minLevel}
 let currentChatLevel = null;
+let unsubscribeChat = null;
+let privateUnlocked = false;
 
-/* ==================== BOOT: read ?id= from URL ==================== */
+/* ==================== SCREEN SWITCH ==================== */
+function showFullscreen(id){
+  document.querySelectorAll('.fullscreen').forEach(el=>el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+/* ==================== BOOT ==================== */
 function boot(){
   const params = new URLSearchParams(window.location.search);
   const cardId = (params.get('id') || '').toUpperCase();
@@ -389,6 +539,7 @@ function boot(){
 
   if(!op){
     const list = document.getElementById('nc-demo-links');
+    list.innerHTML = '';
     Object.keys(OPERATORS).forEach(id=>{
       const o = OPERATORS[id];
       const a = document.createElement('a');
@@ -397,59 +548,94 @@ function boot(){
       a.innerHTML = `<span>${o.name} ${o.surname}</span><b>${LEVELS[o.level].code}</b>`;
       list.appendChild(a);
     });
+    showFullscreen('view-nocard');
     return;
   }
 
   CURRENT = { id:cardId, name:op.name, surname:op.surname, level:op.level };
-  document.getElementById('view-nocard').classList.remove('active');
-  document.getElementById('app-shell').style.display = 'block';
+  showFullscreen('app-shell');
   initApp();
 }
+
+document.addEventListener('srp-firebase-error', ()=>{
+  document.getElementById('nc-demo-links').innerHTML = '';
+  document.querySelector('#view-nocard .nc-title').textContent = 'ERRORE DI CONNESSIONE';
+  document.querySelector('#view-nocard .nc-body').textContent = 'Impossibile contattare il sistema. Controlla la configurazione Firebase (firebase-config.js) e la connessione di rete.';
+  showFullscreen('view-nocard');
+});
+
+if(window.__srpFirebaseReady){ boot(); }
+else { document.addEventListener('srp-firebase-ready', boot, { once:true }); }
 
 /* ==================== INIT APP ==================== */
 function initApp(){
   const lvl = LEVELS[CURRENT.level];
-  document.getElementById('topbar-id').textContent = CURRENT.id;
+  document.getElementById('topbar-id').textContent = CURRENT.id.slice(0,10)+'…';
   document.getElementById('home-initials').textContent = CURRENT.name[0]+CURRENT.surname[0];
   document.getElementById('home-name').textContent = CURRENT.name+' '+CURRENT.surname;
   document.getElementById('home-id').textContent = CURRENT.id;
   document.getElementById('home-level').textContent = lvl.code+' — '+lvl.name;
   document.getElementById('home-clearance').textContent = lvl.clearance;
   document.getElementById('home-time').textContent = new Date().toLocaleString('it-IT',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
+  document.getElementById('settings-name').textContent = CURRENT.name+' '+CURRENT.surname;
+  document.getElementById('settings-level').textContent = lvl.code+' — '+lvl.name+' · '+CURRENT.id;
+
+  if(CURRENT.level >= 5){
+    document.getElementById('settings-password-block').style.display = 'block';
+  }
 
   buildAccessMatrix();
-  buildRepoList();
   buildChatTabs();
+  refreshStats();
 
   if(CURRENT.level < 5){
     document.getElementById('nav-private').classList.add('disabled');
-  } else {
-    document.getElementById('nav-private').addEventListener('click', ()=> switchView('private'));
   }
 
   document.querySelectorAll('.nav-btn[data-view]').forEach(btn=>{
     btn.addEventListener('click', ()=> switchView(btn.dataset.view));
   });
 
+  document.getElementById('new-repo-toggle').addEventListener('click', ()=>{
+    document.getElementById('new-repo-form').classList.toggle('open');
+  });
+  document.getElementById('new-repo-submit').addEventListener('click', createRepo);
+  document.getElementById('repo-back-btn').addEventListener('click', showRepoList);
   document.getElementById('file-input').addEventListener('change', handleFileUpload);
+
   document.getElementById('chat-send').addEventListener('click', sendMessage);
   document.getElementById('chat-input').addEventListener('keydown', e=>{ if(e.key==='Enter') sendMessage(); });
+
+  document.getElementById('lock-submit').addEventListener('click', attemptUnlockPrivate);
+  document.getElementById('lock-input').addEventListener('keydown', e=>{ if(e.key==='Enter') attemptUnlockPrivate(); });
+
   document.getElementById('priv-submit').addEventListener('click', submitPrivateEntry);
+  document.getElementById('private-file-input').addEventListener('change', handlePrivateFileUpload);
+
+  document.getElementById('settings-btn').addEventListener('click', ()=> switchView('settings'));
+  document.getElementById('settings-back-btn').addEventListener('click', ()=> switchView('home'));
+  document.getElementById('settings-pw-save').addEventListener('click', savePrivatePassword);
 
   switchView('home');
-  refreshStats();
 }
 
 function switchView(name){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  if(name==='private'){
+    if(CURRENT.level < 5) return;
+    checkPrivateAccess();
+    return;
+  }
+
+  document.querySelectorAll('.view-inner').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+name).classList.add('active');
   document.querySelectorAll('.nav-btn[data-view]').forEach(b=> b.classList.toggle('active', b.dataset.view===name));
-  if(name==='files') renderFileList();
+
+  if(name==='files'){ showRepoList(); }
   if(name==='chat'){ renderChatMessages(); }
   else if(unsubscribeChat){ unsubscribeChat(); unsubscribeChat = null; }
 }
 
-/* ==================== ACCESS MATRIX (home) ==================== */
+/* ==================== ACCESS MATRIX ==================== */
 function buildAccessMatrix(){
   const el = document.getElementById('access-matrix');
   el.innerHTML = Object.values(LEVELS).map(l=>{
@@ -461,85 +647,144 @@ function buildAccessMatrix(){
   }).join('');
 }
 
-/* ==================== FILES ==================== */
-function buildRepoList(){
+/* ==================== REPOS ==================== */
+async function createRepo(){
+  const name = document.getElementById('new-repo-name').value.trim();
+  const desc = document.getElementById('new-repo-desc').value.trim();
+  const minLevel = parseInt(document.getElementById('new-repo-level').value);
+  if(!name) return;
+  const { collection, addDoc, serverTimestamp } = window.__srp;
+  try{
+    await addDoc(collection(window.__srpDb, 'repos'), {
+      name, desc, minLevel,
+      createdBy: CURRENT.name+' '+CURRENT.surname[0]+'.',
+      createdByUid: window.__srpUid || null,
+      createdAt: serverTimestamp()
+    });
+    document.getElementById('new-repo-name').value='';
+    document.getElementById('new-repo-desc').value='';
+    document.getElementById('new-repo-form').classList.remove('open');
+    renderRepoList();
+    refreshStats();
+  }catch(err){ console.error(err); alert('Creazione repository fallita.'); }
+}
+
+async function fetchRepos(){
+  const { collection, query, orderBy, getDocs } = window.__srp;
+  try{
+    const q = query(collection(window.__srpDb, 'repos'), orderBy('createdAt','desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  }catch(e){ console.error('fetchRepos', e); return []; }
+}
+
+async function renderRepoList(){
   const el = document.getElementById('repo-list');
-  el.innerHTML = REPOS.map(r=>{
-    const unlocked = CURRENT.level >= r.level;
-    return `<div class="repo-row" data-repo="${r.id}" data-unlocked="${unlocked}" style="${unlocked?'':'opacity:.35;pointer-events:none;'}">
+  el.innerHTML = '<div class="loading-note">Caricamento…</div>';
+  const repos = await fetchRepos();
+  if(repos.length===0){ el.innerHTML = '<div class="empty-note">Nessuna repository ancora. Creane una tu.</div>'; return; }
+  el.innerHTML = repos.map(r=>{
+    const unlocked = CURRENT.level >= r.minLevel;
+    return `<div class="repo-row" data-rid="${r.id}" style="${unlocked?'':'opacity:.35;pointer-events:none;'}">
       <div class="repo-left">
         <div class="repo-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7a1 1 0 011-1h5l2 2h9a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V7z"/></svg></div>
-        <div>
-          <div class="repo-name">${r.name}</div>
-          <div class="repo-meta">${r.desc}</div>
+        <div style="min-width:0;">
+          <div class="repo-name">${escapeHtml(r.name)}</div>
+          <div class="repo-meta">${escapeHtml(r.desc||'')}</div>
         </div>
       </div>
-      <div class="repo-lvl">${LEVELS[r.level].code}+</div>
+      <div class="repo-lvl">${LEVELS[r.minLevel].code}+</div>
     </div>`;
   }).join('');
   el.querySelectorAll('.repo-row').forEach(row=>{
     row.addEventListener('click', ()=>{
-      currentRepo = row.dataset.repo;
-      document.getElementById('files-inrepo-label').style.display='flex';
-      document.getElementById('files-inrepo-label').textContent = currentRepo.toUpperCase();
-      document.getElementById('upload-bar').style.display='flex';
-      renderFileList();
+      const r = repos.find(x=>x.id===row.dataset.rid);
+      if(r) openRepo(r);
     });
   });
 }
 
-async function getFilesForRepo(repo){
-  const { collection, query, where, orderBy, getDocs } = window.__srp;
-  try{
-    const q = query(collection(window.__srpDb, 'files'), where('repo','==',repo), orderBy('createdAt','desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map(d=>({ id:d.id, ...d.data() }));
-  }catch(e){ console.error('getFilesForRepo', e); return []; }
-}
-async function countAllFiles(){
-  const { collection, getDocs } = window.__srp;
-  try{
-    const snap = await getDocs(collection(window.__srpDb, 'files'));
-    return snap.size;
-  }catch(e){ return 0; }
+function showRepoList(){
+  document.getElementById('files-repo-list-wrap').style.display = 'block';
+  document.getElementById('files-repo-detail-wrap').style.display = 'none';
+  currentRepo = null;
+  renderRepoList();
 }
 
-async function renderFileList(){
-  const listEl = document.getElementById('file-list');
-  if(!currentRepo){ listEl.innerHTML = '<div class="empty-note">Seleziona un repository sopra per vedere i file.</div>'; return; }
-  listEl.innerHTML = '<div class="loading-note">Caricamento…</div>';
-  const files = await getFilesForRepo(currentRepo);
-  if(files.length===0){ listEl.innerHTML = '<div class="empty-note">Nessun file in questo repository. Sii il primo a caricarne uno.</div>'; return; }
-  listEl.innerHTML = files.map(f=>`
-    <div class="file-item">
-      <div class="fi-left">
-        <div>
-          <div class="fi-name">${escapeHtml(f.name)}</div>
-          <div class="fi-meta">${escapeHtml(f.uploader)} · ${f.size} · ${f.date}</div>
-        </div>
-      </div>
-      <div class="fi-dl" data-fid="${f.id}">APRI</div>
-    </div>`).join('');
-  listEl.querySelectorAll('.fi-dl').forEach(btn=>{
+function openRepo(r){
+  currentRepo = r;
+  document.getElementById('files-repo-list-wrap').style.display = 'none';
+  document.getElementById('files-repo-detail-wrap').style.display = 'block';
+  document.getElementById('repo-detail-title').textContent = r.name;
+  document.getElementById('repo-detail-desc').textContent = r.desc || '';
+  renderFileList();
+}
+
+async function fetchFilesForRepo(repoId){
+  const { collection, query, where, orderBy, getDocs } = window.__srp;
+  try{
+    const q = query(collection(window.__srpDb, 'files'), where('repoId','==',repoId), orderBy('createdAt','desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d=>({ id:d.id, ...d.data() }));
+  }catch(e){ console.error('fetchFilesForRepo', e); return []; }
+}
+
+async function countAllFiles(){
+  const { collection, getDocs } = window.__srp;
+  try{ return (await getDocs(collection(window.__srpDb,'files'))).size; }catch(e){ return 0; }
+}
+async function countAllRepos(){
+  const { collection, getDocs } = window.__srp;
+  try{ return (await getDocs(collection(window.__srpDb,'repos'))).size; }catch(e){ return 0; }
+}
+
+function renderFileRow(f){
+  return `<div class="file-item">
+    <div class="fi-left">
+      <div class="fi-name">${escapeHtml(f.name)}</div>
+      <div class="fi-meta">${escapeHtml(f.uploader)} · ${f.size} · ${f.date}</div>
+    </div>
+    <div class="fi-actions">
+      <button class="fi-btn" data-act="open" data-fid="${f.id}">APRI</button>
+      <button class="fi-btn" data-act="dl" data-fid="${f.id}">SCARICA</button>
+    </div>
+  </div>`;
+}
+
+function bindFileActions(container, files){
+  container.querySelectorAll('.fi-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const f = files.find(x=>x.id===btn.dataset.fid);
-      if(f && f.dataUrl){
+      if(!f || !f.dataUrl) return;
+      if(btn.dataset.act==='open'){
+        window.open(f.dataUrl, '_blank');
+      } else {
         const a=document.createElement('a'); a.href=f.dataUrl; a.download=f.name; a.click();
       }
     });
   });
 }
 
-async function handleFileUpload(e){
+async function renderFileList(){
+  const listEl = document.getElementById('file-list');
+  if(!currentRepo){ return; }
+  listEl.innerHTML = '<div class="loading-note">Caricamento…</div>';
+  const files = await fetchFilesForRepo(currentRepo.id);
+  if(files.length===0){ listEl.innerHTML = '<div class="empty-note">Nessun file in questa repository. Sii il primo a caricarne uno.</div>'; return; }
+  listEl.innerHTML = files.map(renderFileRow).join('');
+  bindFileActions(listEl, files);
+}
+
+function handleFileUpload(e){
   const file = e.target.files[0];
   if(!file || !currentRepo) return;
-  if(file.size > 4*1024*1024){ alert('File troppo grande (max 4MB in questa demo).'); return; }
+  if(file.size > 4*1024*1024){ alert('File troppo grande (max 4MB in questa demo).'); e.target.value=''; return; }
   const reader = new FileReader();
   reader.onload = async ()=>{
     const { collection, addDoc, serverTimestamp } = window.__srp;
     try{
       await addDoc(collection(window.__srpDb, 'files'), {
-        repo: currentRepo,
+        repoId: currentRepo.id,
         name: file.name,
         uploader: CURRENT.name+' '+CURRENT.surname[0]+'.',
         uploaderUid: window.__srpUid || null,
@@ -549,7 +794,7 @@ async function handleFileUpload(e){
         dataUrl: reader.result,
         createdAt: serverTimestamp()
       });
-    }catch(err){ console.error('upload failed', err); alert('Caricamento fallito. Controlla le regole Firestore.'); }
+    }catch(err){ console.error(err); alert('Caricamento fallito. Controlla le regole Firestore.'); }
     renderFileList();
     refreshStats();
     e.target.value = '';
@@ -578,24 +823,16 @@ function buildChatTabs(){
 
 function canWriteToChat(chatKey){
   if(chatKey==='global') return true;
-  const lvlNum = parseInt(chatKey.replace('L',''));
-  return lvlNum === CURRENT.level;
+  return parseInt(chatKey.replace('L','')) === CURRENT.level;
 }
-
-let unsubscribeChat = null;
 
 function listenChat(chatKey, cb){
   if(unsubscribeChat){ unsubscribeChat(); unsubscribeChat = null; }
   const { collection, query, orderBy, limit, onSnapshot } = window.__srp;
-  const q = query(
-    collection(window.__srpDb, 'chats', chatKey, 'messages'),
-    orderBy('createdAt','asc'),
-    limit(200)
-  );
+  const q = query(collection(window.__srpDb, 'chats', chatKey, 'messages'), orderBy('createdAt','asc'), limit(200));
   unsubscribeChat = onSnapshot(q, snap=>{
-    const msgs = snap.docs.map(d=>d.data());
-    cb(msgs);
-  }, err=>{ console.error('chat listener error', err); cb(null); });
+    cb(snap.docs.map(d=>d.data()));
+  }, err=>{ console.error('chat listener', err); cb(null); });
 }
 
 async function postMessage(chatKey, text){
@@ -618,13 +855,10 @@ function renderChatMessages(){
   document.getElementById('chat-readonly').style.display = writable ? 'none' : 'block';
 
   listenChat(currentChatLevel, msgs=>{
-    if(msgs===null){ msgsEl.innerHTML = '<div class="empty-note">Impossibile caricare i messaggi. Controlla la configurazione Firebase.</div>'; return; }
-    if(msgs.length===0){
-      msgsEl.innerHTML = '<div class="empty-note">Nessun messaggio. Scrivi il primo.</div>';
-      return;
-    }
+    if(msgs===null){ msgsEl.innerHTML = '<div class="empty-note">Impossibile caricare i messaggi. Controlla Firebase.</div>'; return; }
+    if(msgs.length===0){ msgsEl.innerHTML = '<div class="empty-note">Nessun messaggio. Scrivi il primo.</div>'; return; }
     msgsEl.innerHTML = msgs.map(m=>{
-      const t = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}) : '—';
+      const t = m.createdAt && m.createdAt.toDate ? m.createdAt.toDate().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}) : '…';
       return `<div class="msg ${m.authorId===CURRENT.id?'own':''}">
         <div class="msg-meta"><span>${escapeHtml(m.author)}</span><span class="m-lvl">${m.lvl}</span><span>${t}</span></div>
         <div class="msg-bubble">${escapeHtml(m.text)}</div>
@@ -645,30 +879,73 @@ async function sendMessage(){
   try{
     await postMessage(currentChatLevel, text);
     input.value = '';
-  }catch(err){
-    console.error('send failed', err);
-    alert('Invio fallito. Controlla la connessione o le regole Firestore.');
-  }finally{
-    sendInFlight = false;
-    btn.disabled = false;
+  }catch(err){ console.error(err); alert('Invio fallito.'); }
+  finally{ sendInFlight = false; btn.disabled = false; }
+}
+
+/* ==================== PRIVATE — password lock ==================== */
+async function sha256Hex(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function getOperatorSettings(){
+  const { doc, getDoc } = window.__srp;
+  try{
+    const snap = await getDoc(doc(window.__srpDb, 'operator_settings', CURRENT.id));
+    return snap.exists() ? snap.data() : null;
+  }catch(e){ console.error(e); return null; }
+}
+
+async function checkPrivateAccess(){
+  if(privateUnlocked){ enterPrivate(); return; }
+  const settings = await getOperatorSettings();
+  if(settings && settings.passwordHash){
+    document.querySelectorAll('.view-inner').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-private-lock').classList.add('active');
+    document.getElementById('lock-error').textContent = '';
+    document.getElementById('lock-input').value = '';
+    document.querySelectorAll('.nav-btn[data-view]').forEach(b=> b.classList.toggle('active', b.dataset.view==='private'));
+  } else {
+    privateUnlocked = true;
+    enterPrivate();
   }
 }
 
-/* ==================== PRIVATE (L5 only) ==================== */
+async function attemptUnlockPrivate(){
+  const pw = document.getElementById('lock-input').value;
+  const settings = await getOperatorSettings();
+  const hash = await sha256Hex(pw);
+  if(settings && hash === settings.passwordHash){
+    privateUnlocked = true;
+    enterPrivate();
+  } else {
+    document.getElementById('lock-error').textContent = 'Password errata.';
+  }
+}
+
+function enterPrivate(){
+  document.querySelectorAll('.view-inner').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-private').classList.add('active');
+  document.querySelectorAll('.nav-btn[data-view]').forEach(b=> b.classList.toggle('active', b.dataset.view==='private'));
+  renderPrivateList();
+  renderPrivateFileList();
+}
+
+/* ==================== PRIVATE — notes ==================== */
 async function getPrivateEntries(){
   const { collection, query, orderBy, getDocs } = window.__srp;
   try{
     const q = query(collection(window.__srpDb, 'private_entries'), orderBy('createdAt','desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map(d=>d.data());
-  }catch(e){ console.error('getPrivateEntries', e); return null; }
+    return (await getDocs(q)).docs.map(d=>d.data());
+  }catch(e){ console.error(e); return null; }
 }
 
 async function renderPrivateList(){
   const el = document.getElementById('private-list');
   el.innerHTML = '<div class="loading-note">Caricamento…</div>';
   const entries = await getPrivateEntries();
-  if(entries===null){ el.innerHTML='<div class="empty-note">Impossibile caricare i dati. Controlla la configurazione Firebase.</div>'; return; }
+  if(entries===null){ el.innerHTML='<div class="empty-note">Impossibile caricare i dati.</div>'; return; }
   if(entries.length===0){ el.innerHTML='<div class="empty-note">Nessuna voce registrata.</div>'; return; }
   el.innerHTML = entries.map(e=>`
     <div class="priv-entry">
@@ -678,7 +955,6 @@ async function renderPrivateList(){
 }
 
 async function submitPrivateEntry(){
-  if(CURRENT.level < 5) return;
   const t = document.getElementById('priv-title').value.trim();
   const b = document.getElementById('priv-body').value.trim();
   if(!t || !b) return;
@@ -690,32 +966,82 @@ async function submitPrivateEntry(){
       authorUid: window.__srpUid || null,
       createdAt: serverTimestamp()
     });
-  }catch(err){ console.error('private entry failed', err); alert('Registrazione fallita. Controlla le regole Firestore.'); return; }
+  }catch(err){ console.error(err); alert('Registrazione fallita.'); return; }
   document.getElementById('priv-title').value='';
   document.getElementById('priv-body').value='';
   renderPrivateList();
 }
 
+/* ==================== PRIVATE — files ==================== */
+async function getPrivateFiles(){
+  const { collection, query, orderBy, getDocs } = window.__srp;
+  try{
+    const q = query(collection(window.__srpDb, 'private_files'), orderBy('createdAt','desc'));
+    return (await getDocs(q)).docs.map(d=>({ id:d.id, ...d.data() }));
+  }catch(e){ console.error(e); return null; }
+}
+
+async function renderPrivateFileList(){
+  const el = document.getElementById('private-file-list');
+  el.innerHTML = '<div class="loading-note">Caricamento…</div>';
+  const files = await getPrivateFiles();
+  if(files===null){ el.innerHTML='<div class="empty-note">Impossibile caricare i file.</div>'; return; }
+  if(files.length===0){ el.innerHTML='<div class="empty-note">Nessun file riservato caricato.</div>'; return; }
+  el.innerHTML = files.map(renderFileRow).join('');
+  bindFileActions(el, files);
+}
+
+function handlePrivateFileUpload(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  if(file.size > 4*1024*1024){ alert('File troppo grande (max 4MB in questa demo).'); e.target.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = async ()=>{
+    const { collection, addDoc, serverTimestamp } = window.__srp;
+    try{
+      await addDoc(collection(window.__srpDb, 'private_files'), {
+        name: file.name,
+        uploader: CURRENT.name+' '+CURRENT.surname[0]+'.',
+        uploaderUid: window.__srpUid || null,
+        size: (file.size/1024).toFixed(1)+' KB',
+        date: new Date().toLocaleDateString('it-IT'),
+        dataUrl: reader.result,
+        createdAt: serverTimestamp()
+      });
+    }catch(err){ console.error(err); alert('Caricamento fallito.'); }
+    renderPrivateFileList();
+    e.target.value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ==================== SETTINGS ==================== */
+async function savePrivatePassword(){
+  const pw1 = document.getElementById('settings-pw1').value;
+  const pw2 = document.getElementById('settings-pw2').value;
+  const statusEl = document.getElementById('settings-pw-status');
+  if(pw1 !== pw2){ statusEl.textContent = 'Le password non coincidono.'; return; }
+  const { doc, setDoc } = window.__srp;
+  try{
+    const hash = pw1 ? await sha256Hex(pw1) : null;
+    await setDoc(doc(window.__srpDb, 'operator_settings', CURRENT.id), { passwordHash: hash });
+    statusEl.style.color = 'var(--text-dim)';
+    statusEl.textContent = pw1 ? 'Password salvata.' : 'Password rimossa.';
+    privateUnlocked = false;
+    document.getElementById('settings-pw1').value='';
+    document.getElementById('settings-pw2').value='';
+  }catch(err){ console.error(err); statusEl.style.color='var(--red)'; statusEl.textContent='Errore nel salvataggio.'; }
+}
+
 /* ==================== STATS ==================== */
 async function refreshStats(){
-  const count = await countAllFiles();
-  document.getElementById('stat-files').textContent = count;
+  document.getElementById('stat-files').textContent = await countAllFiles();
+  document.getElementById('stat-repos').textContent = await countAllRepos();
 }
 
 function escapeHtml(s){
-  return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-
-/* hook private view render on nav click */
-document.addEventListener('DOMContentLoaded', ()=>{
-  const obs = new MutationObserver(()=>{
-    if(document.getElementById('view-private').classList.contains('active')) renderPrivateList();
-  });
-  obs.observe(document.getElementById('view-private'), { attributes:true, attributeFilter:['class'] });
-});
-
-if(window.__srpFirebaseReady){ boot(); }
-else { document.addEventListener('srp-firebase-ready', boot, { once:true }); }
 </script>
 </body>
 </html>
