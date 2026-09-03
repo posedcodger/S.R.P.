@@ -529,7 +529,9 @@ let privateUnlocked = false;
 // - è stato creato da qualcuno del suo stesso livello, oppure
 // - lui è L4/L5 e il creatore ha un livello inferiore al suo
 function canDelete(creatorLevel){
-  if(creatorLevel == null) return false;
+  // dati creati prima di questo aggiornamento non hanno "creatorLevel":
+  // permettiamo a L4/L5 di ripulirli comunque
+  if(creatorLevel == null) return CURRENT.level >= 4;
   if(creatorLevel === CURRENT.level) return true;
   if(CURRENT.level >= 4 && creatorLevel < CURRENT.level) return true;
   return false;
