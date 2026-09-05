@@ -37,8 +37,7 @@
   ::-webkit-scrollbar{ width:4px; height:4px; }
   ::-webkit-scrollbar-thumb{ background:var(--border); }
 
-  /* Ogni "schermo" pieno (loading, nocard, app-shell) occupa tutta l'altezza
-     visibile del telefono in modo affidabile anche con la barra indirizzi mobile. */
+  
   .fullscreen{
     height:100vh; height:100dvh;
     max-width:560px; margin:0 auto;
@@ -49,7 +48,6 @@
 
   img.srp-logo{ width:30px; height:30px; object-fit:contain; }
 
-  /* ===== LOADING ===== */
   #view-loading{ align-items:center; justify-content:center; gap:18px; }
   .spinner{
     width:34px; height:34px; border:2px solid var(--border);
@@ -59,7 +57,6 @@
   @keyframes spin{ to{ transform:rotate(360deg); } }
   .loading-label{ font-size:10.5px; letter-spacing:2.5px; color:var(--text-dim); }
 
-  /* ===== TOPBAR ===== */
   header.topbar{
     display:flex; align-items:center; justify-content:space-between;
     padding:14px 18px; border-bottom:1px solid var(--border-soft);
@@ -83,7 +80,6 @@
   .icon-btn:active{ border-color:var(--red-dim); color:var(--red); }
   .icon-btn svg{ width:14px; height:14px; }
 
-  /* ===== NO-CARD SCREEN ===== */
   #view-nocard{ align-items:center; justify-content:center; padding:40px 26px; text-align:center; }
   #view-nocard img.srp-logo{ width:64px; height:64px; margin-bottom:22px; opacity:.9; }
   .nc-title{ font-family:var(--font-brand); font-size:15px; letter-spacing:2px; color:#fff; margin-bottom:10px; }
@@ -95,7 +91,6 @@
   }
   .nc-link b{ color:#fff; font-weight:600; }
 
-  /* ===== APP SHELL LAYOUT ===== */
   #app-shell{ /* fullscreen flex column: topbar / content / bottomnav */ }
   #content{ flex:1; min-height:0; overflow-y:auto; }
   .view-inner{ display:none; }
@@ -103,7 +98,6 @@
   /* views that don't need full-height flex (they just scroll normally) get block */
   .view-inner.active.scrollable{ display:block; height:auto; min-height:100%; }
 
-  /* ===== PROFILE HEADER (Home) ===== */
   .profile-block{
     padding:22px 18px 18px; border-bottom:1px solid var(--border-soft);
     background:linear-gradient(180deg, rgba(224,49,58,.05), transparent 70%);
@@ -123,14 +117,12 @@
   }
   .clearance-line{ display:flex; justify-content:space-between; font-size:10px; color:var(--text-faint); letter-spacing:1px; margin-top:14px; }
 
-  /* ===== SECTION LABEL ===== */
   .sec-label{
     padding:20px 18px 10px; font-size:10.5px; letter-spacing:2.5px; color:var(--text-dim);
     display:flex; align-items:center; gap:8px;
   }
   .sec-label::after{ content:''; flex:1; height:1px; background:var(--border-soft); }
 
-  /* ===== OVERVIEW GRID ===== */
   .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border-soft); }
   .stat{ background:var(--panel); padding:16px 16px; }
   .stat .n{ font-size:22px; color:#fff; font-family:var(--font-brand); }
@@ -209,7 +201,6 @@
   .empty-note{ padding:26px 18px; text-align:center; font-size:11px; color:var(--text-faint); letter-spacing:.5px; }
   .loading-note{ text-align:center; padding:30px; font-size:10.5px; color:var(--text-faint); letter-spacing:1px; }
 
-  /* ===== CHAT VIEW ===== */
   .chat-tabs{ display:flex; overflow-x:auto; border-bottom:1px solid var(--border-soft); flex-shrink:0; }
   .chat-tab{
     flex-shrink:0; padding:12px 16px; font-size:10.5px; letter-spacing:1.5px; color:var(--text-faint);
