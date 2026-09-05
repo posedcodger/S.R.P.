@@ -256,7 +256,6 @@
   }
   .lock-error{ font-size:10px; color:var(--red); letter-spacing:.5px; min-height:14px; }
 
-  /* ===== SETTINGS SHEET ===== */
   #view-settings{ align-items:stretch; justify-content:flex-start; }
   .settings-row{ padding:16px 18px; border-bottom:1px solid var(--border-soft); }
   .settings-row label{ font-size:10px; letter-spacing:1.5px; color:var(--text-dim); display:block; margin-bottom:8px; }
@@ -273,13 +272,11 @@
 </head>
 <body>
 
-<!-- ============ LOADING ============ -->
 <div id="view-loading" class="fullscreen active">
   <div class="spinner"></div>
   <div class="loading-label">CONNESSIONE AL SISTEMA…</div>
 </div>
 
-<!-- ============ NO CARD / INVALID LINK ============ -->
 <div id="view-nocard" class="fullscreen">
   <img class="srp-logo" src="logo-placeholder.svg" alt="S.R.P. logo" onerror="this.style.opacity=0.15">
   <div class="nc-title">CREDENZIALE NON RILEVATA</div>
@@ -287,7 +284,6 @@
   <div class="nc-links" id="nc-demo-links"></div>
 </div>
 
-<!-- ============ APP SHELL ============ -->
 <div id="app-shell" class="fullscreen">
   <header class="topbar">
     <div class="brand">
@@ -307,7 +303,6 @@
 
   <div id="content">
 
-    <!-- HOME -->
     <section id="view-home" class="view-inner scrollable">
       <div class="profile-block">
         <div class="profile-row">
@@ -334,7 +329,6 @@
       <div id="access-matrix"></div>
     </section>
 
-    <!-- FILES -->
     <section id="view-files" class="view-inner scrollable">
       <div id="files-repo-list-wrap">
         <div class="new-repo-bar">
@@ -372,7 +366,6 @@
       </div>
     </section>
 
-    <!-- CHAT -->
     <section id="view-chat" class="view-inner">
       <div class="chat-tabs" id="chat-tabs"></div>
       <div class="chat-messages" id="chat-messages"></div>
@@ -383,7 +376,6 @@
       </div>
     </section>
 
-    <!-- PRIVATE LOCK -->
     <section id="view-private-lock" class="view-inner">
       <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
       <div class="lock-title">SEZIONE RISERVATA — INSERISCI PASSWORD</div>
@@ -394,7 +386,6 @@
       </div>
     </section>
 
-    <!-- PRIVATE -->
     <section id="view-private" class="view-inner scrollable">
       <div class="private-warn">ACCESSO RISERVATO L5 · RESTRICTED<br>Ogni consultazione viene registrata nel log di sistema.</div>
 
@@ -415,7 +406,6 @@
       </div>
     </section>
 
-    <!-- SETTINGS -->
     <section id="view-settings" class="view-inner scrollable">
       <div class="repo-detail-header">
         <button class="back-btn" id="settings-back-btn">←</button>
