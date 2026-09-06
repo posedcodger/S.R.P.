@@ -479,7 +479,6 @@ onAuthStateChanged(auth, user=>{
 </script>
 
 <script>
-/* ==================== CONFIG ==================== */
 const LEVELS = {
   1:{ code:'L1', name:'VISITOR',    clearance:'PUBBLICO' },
   2:{ code:'L2', name:'STAFF',      clearance:'INTERNO' },
@@ -502,7 +501,6 @@ let currentChatLevel = null;
 let unsubscribeChat = null;
 let privateUnlocked = false;
 
-/* ==================== PERMISSIONS ==================== */
 // Un utente può eliminare un elemento se:
 // - è stato creato da qualcuno del suo stesso livello, oppure
 // - lui è L4/L5 e il creatore ha un livello inferiore al suo
@@ -515,13 +513,11 @@ function canDelete(creatorLevel){
   return false;
 }
 
-/* ==================== SCREEN SWITCH ==================== */
 function showFullscreen(id){
   document.querySelectorAll('.fullscreen').forEach(el=>el.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
-/* ==================== BOOT ==================== */
 function boot(){
   const params = new URLSearchParams(window.location.search);
   const cardId = (params.get('id') || '').toUpperCase();
@@ -557,7 +553,6 @@ document.addEventListener('srp-firebase-error', ()=>{
 if(window.__srpFirebaseReady){ boot(); }
 else { document.addEventListener('srp-firebase-ready', boot, { once:true }); }
 
-/* ==================== INIT APP ==================== */
 function initApp(){
   const lvl = LEVELS[CURRENT.level];
   document.getElementById('topbar-id').textContent = CURRENT.id.slice(0,10)+'…';
@@ -628,7 +623,6 @@ function switchView(name){
   else if(unsubscribeChat){ unsubscribeChat(); unsubscribeChat = null; }
 }
 
-/* ==================== ACCESS MATRIX ==================== */
 function buildAccessMatrix(){
   const el = document.getElementById('access-matrix');
   el.innerHTML = Object.values(LEVELS).map(l=>{
@@ -640,7 +634,6 @@ function buildAccessMatrix(){
   }).join('');
 }
 
-/* ==================== REPOS ==================== */
 async function createRepo(){
   const name = document.getElementById('new-repo-name').value.trim();
   const desc = document.getElementById('new-repo-desc').value.trim();
