@@ -908,7 +908,6 @@ async function sendMessage(){
   finally{ sendInFlight = false; btn.disabled = false; }
 }
 
-/* ==================== PRIVATE — password lock ==================== */
 async function sha256Hex(str){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
@@ -957,7 +956,6 @@ function enterPrivate(){
   renderPrivateFileList();
 }
 
-/* ==================== PRIVATE — notes ==================== */
 async function getPrivateEntries(){
   const { collection, query, orderBy, getDocs } = window.__srp;
   try{
@@ -1015,7 +1013,6 @@ async function submitPrivateEntry(){
   renderPrivateList();
 }
 
-/* ==================== PRIVATE — files ==================== */
 async function getPrivateFiles(){
   const { collection, query, orderBy, getDocs } = window.__srp;
   try{
@@ -1059,7 +1056,6 @@ function handlePrivateFileUpload(e){
   reader.readAsDataURL(file);
 }
 
-/* ==================== SETTINGS — password sezione privata ==================== */
 async function loadSettingsPasswordForm(){
   const settings = await getOperatorSettings();
   const hasPassword = !!(settings && settings.passwordHash);
@@ -1114,7 +1110,6 @@ async function savePrivatePassword(){
   }catch(err){ console.error(err); statusEl.style.color='var(--red)'; statusEl.textContent='Errore nel salvataggio.'; }
 }
 
-/* ==================== STATS ==================== */
 async function refreshStats(){
   document.getElementById('stat-files').textContent = await countAllFiles();
   document.getElementById('stat-repos').textContent = await countAllRepos();
